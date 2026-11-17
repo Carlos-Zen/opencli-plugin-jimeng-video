@@ -883,7 +883,9 @@ export async function lookupRecord(page, recordId, workspaceId, maxPages = 6) {
     // 2) query the asset list ourselves
     let offset = 0;
     for (let p = 0; p < maxPages; p++) {
-      const body = { count: 20, asset_type_list: [2], direction: 1, mode: 'workbench', workspace_id: Number(ws) || 0 };
+      // workspace_id omitted = newest first across all conversations (workspace_id:0 returns an unrelated list)
+      const body = { count: 20, asset_type_list: [2], direction: 1, mode: 'workbench' };
+      if (Number(ws)) body.workspace_id = Number(ws);
       if (offset) body.offset = offset;
       const r = await fetch(`/mweb/v1/get_asset_list?${q}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
