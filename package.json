@@ -1,0 +1,20 @@
+{
+  "name": "opencli-plugin-jimeng-video",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "即梦AI 视频生成：上传图片/视频/音频素材、@引用素材、提交生成并下载",
+  "peerDependencies": {
+    "@jackwener/opencli": ">=2.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Carlos-Zen/opencli-plugin-jimeng-video.git"
+  },
+  "keywords": [
+    "opencli",
+    "opencli-plugin",
+    "jimeng",
+    "即梦",
+    "video"
+  ]
+}
