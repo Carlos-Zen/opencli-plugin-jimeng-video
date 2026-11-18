@@ -22,6 +22,7 @@ import {
   uploadFiles,
   waitForRecord,
 } from './utils.js';
+import { DEFAULT_PROJECT, resolveLibraryDir, saveToLibrary, showInUi } from './lib/library.js';
 
 cli({
   site: 'jimeng',
@@ -51,6 +52,12 @@ cli({
     { name: 'dry-run', type: 'boolean', default: false, help: '只上传素材并填写提示词/参数，不点击生成（不消耗积分）' },
     { name: 'max-credits', type: 'int', default: 0, help: '预计积分超过该值则不提交（0=不限制）' },
     { name: 'screenshot', type: 'string', default: '', help: '提交前把填写好的页面截图保存到该路径（.png）' },
+    { name: 'save', type: 'boolean', default: true, help: '生成完成后自动存入素材库（目录见 opencli jimeng library status）' },
+    { name: 'library', type: 'string', default: '', help: '本次使用的素材库目录（默认取 library init 设置的目录）' },
+    { name: 'project', type: 'string', default: '', help: '归入的项目（默认：--workspace 为会话标题时用该标题，否则「未分类」）' },
+    { name: 'tags', type: 'string', default: '', help: '额外标签，逗号分隔（模型/比例/时长/参考类型等会自动打标签）' },
+    { name: 'title', type: 'string', default: '', help: '素材标题（默认从提示词自动提取）' },
+    { name: 'open-ui', type: 'boolean', default: true, help: '入库后在管理页展示（已打开则实时刷新，否则打开浏览器）' },
   ],
   columns: ['status', 'record_id', 'model', 'mode', 'ratio_resolution', 'duration', 'credits', 'prompt', 'video_url', 'file'],
   func: async (page, kwargs) => {
@@ -131,6 +138,41 @@ cli({
     if (status === 'failed') {
       throw new CommandExecutionError(`即梦生成失败: ${rec.fail_msg || 'unknown'} (record ${job.history_record_id})`);
     }
+    // 8. 存入素材库 + 通知管理页（失败不影响已生成的结果）
+    let libItems = [];
+    let libInfo = {};
+    if (status === 'succeeded' && kwargs.save && videos.length) {
+      try {
+        const lib = resolveLibraryDir(kwargs.library);
+        const ws = String(kwargs.workspace || '').trim();
+        const [ratio, resolution] = String(summary.ratio_resolution || '').split(/s+/);
+        libItems = await saveToLibrary(lib, {
+          recordId: job.history_record_id,
+          submitId: job.submit_id,
+          workspaceId,
+          createdAt: rec.created_time || startedAt,
+          prompt: filled.text,
+          promptRaw: prompt,
+          title: kwargs.title,
+          project: kwargs.project || (ws && ws !== 'new' && !/^d+$/.test(ws) ? ws : DEFAULT_PROJECT),
+          tags: kwargs.tags,
+          references: files,
+          subjects: segments.filter((s) => s.type === 'mention' && s.source !== 'upload').map((s) => s.label),
+          generation: { model: summary.model, mode: summary.mode, ratio: ratio || '', resolution: resolution || '', duration: summary.duration, count: summary.count, credits: rec.credits ?? summary.credits },
+          videos,
+          source: 'video',
+        });
+        libInfo = { library: lib };
+        const ids = libItems.map((x) => x.id);
+        if (ids.length) {
+          const ui = await showInUi(lib, ids, { open: kwargs['open-ui'] }).catch((e) => ({ error: String(e.message || e) }));
+          libInfo.ui_url = ui.url || '';
+          if (ui.error) libInfo.ui_error = ui.error;
+        }
+      } catch (e) {
+        libInfo.library_error = String(e.message || e);
+      }
+    }
     const rows = (videos.length ? videos : [{}]).map((v, i) => ({
       status,
       ...submitted,
@@ -139,7 +181,9 @@ cli({
       cover_url: v.cover || '',
       width: v.width || null,
       height: v.height || null,
-      file: saved[i] || '',
+      file: saved[i] || libItems[i]?.videoPath || '',
+      library_item: libItems[i]?.id || '',
+      ...libInfo,
     }));
     return rows;
   },

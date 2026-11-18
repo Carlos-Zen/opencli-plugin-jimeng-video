@@ -2,6 +2,7 @@
 import { cli, Strategy } from '@jackwener/opencli/registry';
 import { ArgumentError, EmptyResultError } from '@jackwener/opencli/errors';
 import { DOMAIN, VIDEO_URL, downloadVideos, installNetHook, lookupRecord, statusText, waitForRecord } from './utils.js';
+import { DEFAULT_PROJECT, resolveLibraryDir, saveToLibrary, showInUi } from './lib/library.js';
 
 cli({
   site: 'jimeng',
@@ -19,6 +20,11 @@ cli({
     { name: 'wait', type: 'boolean', default: false, help: '若仍在生成，则等待完成' },
     { name: 'timeout', type: 'int', default: 900, help: '等待超时秒数' },
     { name: 'output', type: 'string', default: '', help: '下载 mp4 到该目录（留空=不下载）' },
+    { name: 'save', type: 'boolean', default: false, help: '存入素材库（可用于导入网页端生成的视频；已在库则跳过）' },
+    { name: 'library', type: 'string', default: '', help: '素材库目录（默认取 library init 设置的目录）' },
+    { name: 'project', type: 'string', default: '', help: '存入素材库时的项目' },
+    { name: 'tags', type: 'string', default: '', help: '存入素材库时的额外标签，逗号分隔' },
+    { name: 'open-ui', type: 'boolean', default: true, help: '入库后在管理页展示' },
   ],
   columns: ['status', 'record_id', 'model', 'credits', 'prompt', 'video_url', 'file'],
   func: async (page, kwargs) => {
@@ -41,6 +47,27 @@ cli({
     if (status === 'succeeded' && kwargs.output && videos.length) {
       saved = await downloadVideos(videos, kwargs.output, `jimeng_${rid}`);
     }
+    let libItems = [];
+    const libInfo = {};
+    if (status === 'succeeded' && kwargs.save && videos.length) {
+      const lib = resolveLibraryDir(kwargs.library);
+      libItems = await saveToLibrary(lib, {
+        recordId: rid,
+        workspaceId: ws !== '0' ? ws : null,
+        createdAt: rec.created_time,
+        prompt: rec.prompt,
+        promptRaw: rec.prompt,
+        project: kwargs.project || DEFAULT_PROJECT,
+        tags: kwargs.tags,
+        generation: { model: rec.model, credits: rec.credits },
+        videos,
+        source: 'video-status',
+      });
+      libInfo.library = lib;
+      const ids = libItems.map((x) => x.id);
+      const ui = await showInUi(lib, ids, { open: kwargs['open-ui'] }).catch((e) => ({ error: String(e.message || e) }));
+      libInfo.ui_url = ui.url || '';
+    }
     return (videos.length ? videos : [{}]).map((v, i) => ({
       status,
       record_id: rid,
@@ -52,7 +79,9 @@ cli({
       cover_url: v.cover || '',
       width: v.width || null,
       height: v.height || null,
-      file: saved[i] || '',
+      file: saved[i] || libItems[i]?.videoPath || '',
+      library_item: libItems[i]?.id || '',
+      ...libInfo,
     }));
   },
 });

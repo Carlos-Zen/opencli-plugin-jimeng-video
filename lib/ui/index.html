@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>即梦素材库</title>
+<style>
+:root{--bg:#111114;--panel:#19191d;--panel2:#212127;--line:#2d2d35;--text:#e9e9ee;--muted:#9696a3;--accent:#4f8cff;--danger:#ef5350;--ok:#26c281;--warn:#f5a524;--card-w:240px}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 12px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:#4a4a55}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+button.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+button:disabled{opacity:.45;cursor:default}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:5px 10px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:16px;margin:0;font-weight:600;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--danger);display:inline-block}
+.dot.on{background:var(--ok)}
+.tabs{display:flex;background:var(--panel2);border-radius:9px;padding:3px;border:1px solid var(--line)}
+.tabs button{border:0;background:transparent;padding:4px 14px;border-radius:7px;color:var(--muted)}
+.tabs button.active{background:#33333d;color:var(--text)}
+.spacer{flex:1}
+#q{width:260px}
+.libpath{color:var(--muted);font-size:12px;cursor:pointer;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{flex:1;display:flex;min-height:0}
+aside{width:210px;border-right:1px solid var(--line);padding:12px 10px;overflow:auto;flex-shrink:0}
+aside h3{font-size:12px;color:var(--muted);font-weight:500;margin:14px 6px 6px}
+aside h3:first-child{margin-top:0}
+.nav-item{display:flex;justify-content:space-between;padding:5px 8px;border-radius:7px;cursor:pointer;color:#cfcfd8}
+.nav-item:hover{background:var(--panel2)}
+.nav-item.active{background:#2b3550;color:#fff}
+.nav-item .n{color:var(--muted);font-size:12px}
+.tagcloud{display:flex;flex-wrap:wrap;gap:5px;padding:0 4px}
+.tag{font-size:12px;padding:1px 8px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:#c9c9d3;cursor:pointer;white-space:nowrap}
+.tag.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.tag.auto{border-style:dashed}
+.tag .x{margin-left:4px;opacity:.6}
+#content{flex:1;overflow:auto;padding:14px 16px 90px}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;color:var(--muted);font-size:13px;flex-wrap:wrap}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--card-w),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;position:relative;transition:border-color .15s,transform .15s;user-select:none}
+.card:hover{border-color:#4a4a58}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.card.new{animation:glow 2.4s ease-in-out 3}
+@keyframes glow{50%{box-shadow:0 0 0 3px var(--warn)}}
+.thumb{position:relative;aspect-ratio:16/10;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.thumb img,.thumb video{width:100%;height:100%;object-fit:contain;display:block}
+.thumb .dur{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.7);font-size:11px;padding:0 6px;border-radius:5px}
+.thumb .chk{position:absolute;left:6px;top:6px;width:22px;height:22px;border-radius:6px;border:2px solid rgba(255,255,255,.75);background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
+.card:hover .chk,.card.sel .chk,body.selecting .chk{opacity:1}
+.card.sel .chk{background:var(--accent);border-color:var(--accent)}
+.card.sel .chk::after{content:"✓";color:#fff;font-size:13px;font-weight:700}
+.badge{position:absolute;right:6px;top:6px;background:var(--warn);color:#000;font-size:11px;font-weight:700;padding:0 6px;border-radius:5px}
+.favmark{position:absolute;left:34px;top:5px;color:#ffcc33;text-shadow:0 0 3px #000}
+.missing{color:var(--danger);font-size:12px}
+.info{padding:8px 10px 10px}
+.info .title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info .sub{color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info .tags{display:flex;gap:4px;margin-top:6px;overflow:hidden;height:22px}
+.stars{color:#ffcc33;font-size:12px;letter-spacing:1px}
+.empty{color:var(--muted);text-align:center;padding:80px 0}
+.empty code{background:var(--panel2);padding:2px 6px;border-radius:5px}
+#bulk{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#25252d;border:1px solid #3a3a46;border-radius:12px;padding:8px 10px;display:none;gap:8px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:20}
+#bulk.show{display:flex}
+#bulk .cnt{padding:0 8px;color:#fff;font-weight:600}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;z-index:30;padding:24px}
+#modal.show{display:flex;align-items:center;justify-content:center}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(1280px,100%);height:min(820px,100%);display:flex;overflow:hidden;position:relative}
+.player{flex:1;background:#000;display:flex;align-items:center;justify-content:center;position:relative;min-width:0}
+.player video{max-width:100%;max-height:100%}
+.player .navbtn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.45);border:0;font-size:22px;width:40px;height:64px;color:#fff}
+.player .prev{left:8px}.player .next{right:8px}
+.side{width:400px;flex-shrink:0;border-left:1px solid var(--line);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.side label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.side input,.side textarea{width:100%}
+.side textarea{min-height:64px;resize:vertical}
+.prompt{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;white-space:pre-wrap;font-size:13px;max-height:180px;overflow:auto}
+.chip{display:inline-block;background:#2c3a5c;color:#b9d0ff;border-radius:5px;padding:0 5px;margin:0 1px}
+.refs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ref{background:#000;border-radius:7px;overflow:hidden;position:relative;aspect-ratio:1}
+.ref img,.ref video{width:100%;height:100%;object-fit:cover}
+.ref audio{width:100%;position:absolute;bottom:0}
+.ref .lbl{position:absolute;left:0;right:0;top:0;background:linear-gradient(rgba(0,0,0,.75),transparent);font-size:11px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px}
+.kv span:nth-child(odd){color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.rate span{cursor:pointer;font-size:20px;color:#55555f}
+.rate span.on{color:#ffcc33}
+.close{position:absolute;right:10px;top:8px;z-index:2;background:rgba(0,0,0,.5);border:0;font-size:18px;width:34px;height:34px;border-radius:50%;color:#fff}
+#toast{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:40}
+.t{background:#2a2a33;border:1px solid #3c3c48;border-radius:10px;padding:9px 14px;display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.t.err{border-color:var(--danger)}
+.t a{color:var(--accent);cursor:pointer}
+.kbd{font-size:11px;color:var(--muted)}
+.kbd b{border:1px solid var(--line);border-radius:4px;padding:0 4px;font-weight:400;margin:0 2px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot" id="conn" title="服务连接状态"></span>即梦素材库</h1>
+  <div class="tabs">
+    <button data-view="active" class="active">素材 <span id="nActive">0</span></button>
+    <button data-view="archived">已归档 <span id="nArchived">0</span></button>
+  </div>
+  <input id="q" placeholder="搜索 标题 / 提示词 / 标签 / 备注 / 任务ID   ( / )">
+  <select id="sort">
+    <option value="new">最新生成</option>
+    <option value="old">最早生成</option>
+    <option value="rating">评分最高</option>
+    <option value="saved">最近入库</option>
+    <option value="title">标题</option>
+  </select>
+  <label class="kbd" title="卡片大小"><input type="range" id="size" min="170" max="420" value="240" style="width:90px;vertical-align:middle;padding:0"></label>
+  <span class="spacer"></span>
+  <span class="libpath" id="libpath" title="点击在资源管理器中打开素材库目录"></span>
+  <button id="refresh" title="重新扫描目录">刷新</button>
+</header>
+<main>
+  <aside>
+    <h3>浏览</h3>
+    <div class="nav-item" data-quick="all"><span>全部</span><span class="n" id="cAll"></span></div>
+    <div class="nav-item" data-quick="fav"><span>★ 收藏</span><span class="n" id="cFav"></span></div>
+    <div class="nav-item" data-quick="unrated"><span>未评分</span><span class="n" id="cUnrated"></span></div>
+    <h3>项目</h3>
+    <div id="projects"></div>
+    <h3>标签</h3>
+    <div class="tagcloud" id="tags"></div>
+  </aside>
+  <section id="content">
+    <div class="toolbar">
+      <span id="summary"></span>
+      <span class="spacer"></span>
+      <span class="kbd"><b>单击</b>预览 <b>Ctrl/Shift+单击</b>多选 <b>Ctrl+A</b>全选 <b>Del</b>归档 <b>Esc</b>取消</span>
+      <button id="emptyArchive" class="danger" style="display:none">清空归档</button>
+    </div>
+    <div id="grid"></div>
+  </section>
+</main>
+
+<div id="bulk">
+  <span class="cnt" id="bulkCnt"></span>
+  <span id="bulkActive">
+    <button class="danger" data-bulk="archive">移除（归档）</button>
+    <button data-bulk="project">移到项目…</button>
+    <button data-bulk="addTag">加标签…</button>
+    <button data-bulk="fav">收藏</button>
+  </span>
+  <span id="bulkArchived">
+    <button class="primary" data-bulk="restore">恢复</button>
+    <button class="danger" data-bulk="purge">永久删除</button>
+  </span>
+  <button class="ghost" data-bulk="clear">取消选择</button>
+</div>
+
+<div id="modal">
+  <div class="mbox">
+    <button class="close" id="mClose" title="关闭 (Esc)">✕</button>
+    <div class="player">
+      <video id="dv" controls playsinline></video>
+      <button class="navbtn prev" id="mPrev" title="上一个 (←)">‹</button>
+      <button class="navbtn next" id="mNext" title="下一个 (→)">›</button>
+    </div>
+    <div class="side" id="side"></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const S = { items: [], lib: '', stats: {}, view: 'active', quick: 'all', project: '', tag: '', q: '', sort: 'new', sel: new Set(), anchor: null, detail: null, newIds: new Set(), list: [] };
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const enc = (rel) => '/media/' + rel.split('/').map(encodeURIComponent).join('/');
+const mediaOf = (it, f) => enc(it._rel + '/' + f);
+const allTags = (it) => [...new Set([...(it.tags || []), ...(it.autoTags || [])])];
+const fmtSize = (b) => !b ? '0' : b > 1 << 30 ? (b / (1 << 30)).toFixed(2) + ' GB' : b > 1 << 20 ? (b / (1 << 20)).toFixed(1) + ' MB' : (b / 1024).toFixed(0) + ' KB';
+const fmtTime = (s) => { const d = new Date(s); if (isNaN(d)) return ''; const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+const fmtDur = (it) => { const d = Number(it.video?.duration); return d ? (d >= 60 ? Math.floor(d / 60) + ':' + String(Math.round(d % 60)).padStart(2, '0') : Math.round(d) + 's') : (it.generation?.duration || ''); };
+const stars = (n) => n ? '★'.repeat(n) : '';
+const modelShort = (m) => String(m || '').replace(/^即梦\s*/, '');
+
+async function api(method, url, body) {
+  const r = await fetch(url, { method, headers: { 'content-type': 'application/json', 'x-jimeng-library': '1' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({ ok: false, error: 'HTTP ' + r.status }));
+  if (!r.ok || j.ok === false) throw new Error(j.error || 'HTTP ' + r.status);
+  return j;
+}
+function toast(html, { err = false, ms = 4000, action, actionText } = {}) {
+  const el = document.createElement('div');
+  el.className = 't' + (err ? ' err' : '');
+  el.innerHTML = `<span>${html}</span>` + (action ? `<a>${esc(actionText)}</a>` : '');
+  if (action) el.querySelector('a').onclick = () => { el.remove(); action(); };
+  $('#toast').appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+const fail = (e) => toast(esc(e.message || e), { err: true, ms: 6000 });
+
+async function load() {
+  const j = await api('GET', '/api/items');
+  S.items = j.items; S.lib = j.lib; S.stats = j.stats;
+  const ids = new Set(S.items.map((i) => i.id));
+  for (const id of [...S.sel]) if (!ids.has(id) || S.items.find((i) => i.id === id).status !== S.view) S.sel.delete(id);
+  render();
+  if (S.detail) {
+    const it = S.items.find((i) => i.id === S.detail);
+    if (!it) closeDetail(); else renderSide(it);
+  }
+}
+
+function filtered() {
+  const q = S.q.trim().toLowerCase();
+  let list = S.items.filter((it) => it.status === S.view);
+  if (S.quick === 'fav') list = list.filter((it) => it.favorite);
+  if (S.quick === 'unrated') list = list.filter((it) => !it.rating);
+  if (S.project) list = list.filter((it) => it.project === S.project);
+  if (S.tag) list = list.filter((it) => allTags(it).includes(S.tag));
+  if (q) list = list.filter((it) => [it.title, it.prompt, it.promptRaw, it.note, it.project, it.id, it.generation?.model, ...allTags(it), ...(it.references || []).map((r) => r.name)].join('\n').toLowerCase().includes(q));
+  const by = {
+    new: (a, b) => String(b.createdAt).localeCompare(String(a.createdAt)) || a.index - b.index,
+    old: (a, b) => String(a.createdAt).localeCompare(String(b.createdAt)) || a.index - b.index,
+    rating: (a, b) => (b.rating || 0) - (a.rating || 0) || String(b.createdAt).localeCompare(String(a.createdAt)),
+    saved: (a, b) => String(b.archivedAt || b.savedAt).localeCompare(String(a.archivedAt || a.savedAt)),
+    title: (a, b) => String(a.title).localeCompare(String(b.title), 'zh-CN'),
+  }[S.sort];
+  return list.sort(by);
+}
+
+function render() {
+  const inView = S.items.filter((it) => it.status === S.view);
+  $('#nActive').textContent = S.stats.active ?? 0;
+  $('#nArchived').textContent = S.stats.archived ?? 0;
+  document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b.dataset.view === S.view));
+  $('#libpath').textContent = S.lib;
+  $('#cAll').textContent = inView.length;
+  $('#cFav').textContent = inView.filter((i) => i.favorite).length;
+  $('#cUnrated').textContent = inView.filter((i) => !i.rating).length;
+  document.querySelectorAll('[data-quick]').forEach((el) => el.classList.toggle('active', el.dataset.quick === S.quick && !S.project));
+
+  const projects = {};
+  inView.forEach((i) => { projects[i.project] = (projects[i.project] || 0) + 1; });
+  $('#projects').innerHTML = Object.entries(projects).sort((a, b) => a[0].localeCompare(b[0], 'zh-CN'))
+    .map(([p, n]) => `<div class="nav-item ${S.project === p ? 'active' : ''}" data-project="${esc(p)}"><span>${esc(p)}</span><span class="n">${n}</span></div>`).join('') || '<div class="kbd" style="padding:0 8px">暂无</div>';
+  const tags = {};
+  inView.forEach((i) => allTags(i).forEach((t) => { tags[t] = (tags[t] || 0) + 1; }));
+  $('#tags').innerHTML = Object.entries(tags).sort((a, b) => b[1] - a[1]).slice(0, 60)
+    .map(([t, n]) => `<span class="tag ${S.tag === t ? 'active' : ''}" data-tag="${esc(t)}">${esc(t)} <span style="opacity:.6">${n}</span></span>`).join('');
+
+  const list = S.list = filtered();
+  const bytes = list.reduce((s, i) => s + (i.video?.size || 0), 0);
+  const filters = [S.project && `项目「${esc(S.project)}」`, S.tag && `标签「${esc(S.tag)}」`, S.q && `搜索「${esc(S.q)}」`].filter(Boolean).join(' · ');
+  $('#summary').innerHTML = `${list.length} 个视频 · ${fmtSize(bytes)}${filters ? ' · ' + filters + ' <a style="color:var(--accent);cursor:pointer" id="clearFilters">清除筛选</a>' : ''}`;
+  $('#emptyArchive').style.display = S.view === 'archived' && inView.length ? '' : 'none';
+
+  $('#grid').innerHTML = list.map(cardHtml).join('') || (S.items.length || S.view === 'archived'
+    ? `<div class="empty">${S.view === 'archived' ? '归档为空。移除的素材会先放在这里，可恢复或永久删除。' : '没有匹配的素材'}</div>`
+    : `<div class="empty">素材库还是空的。<br><br>生成视频：<code>opencli jimeng video "提示词" --files a.png</code><br>导入已有任务：<code>opencli jimeng video-status &lt;record_id&gt; --save</code></div>`);
+  renderBulk();
+}
+
+function cardHtml(it) {
+  const sel = S.sel.has(it.id);
+  const thumb = it.cover ? `<img loading="lazy" src="${mediaOf(it, it.cover)}" alt="">` : `<video preload="metadata" muted src="${mediaOf(it, it.video.file)}#t=0.5"></video>`;
+  const sub = [fmtTime(it.createdAt), modelShort(it.generation?.model), it.generation?.ratio].filter(Boolean).join(' · ');
+  return `<div class="card ${sel ? 'sel' : ''} ${S.newIds.has(it.id) ? 'new' : ''}" data-id="${esc(it.id)}">
+    <div class="thumb">${thumb}<span class="dur">${esc(fmtDur(it))}</span><span class="chk" data-chk="1"></span>
+      ${S.newIds.has(it.id) ? '<span class="badge">NEW</span>' : ''}${it.favorite ? '<span class="favmark">★</span>' : ''}</div>
+    <div class="info"><div class="title" title="${esc(it.title)}">${esc(it.title)} <span class="stars">${stars(it.rating)}</span></div>
+      <div class="sub">${it._missing ? '<span class="missing">视频文件缺失 · </span>' : ''}${esc(sub)}</div>
+      <div class="tags">${(it.tags || []).concat(it.autoTags || []).slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div></div></div>`;
+}
+
+function renderBulk() {
+  const n = S.sel.size;
+  $('#bulk').classList.toggle('show', n > 0);
+  document.body.classList.toggle('selecting', n > 0);
+  $('#bulkCnt').textContent = `已选 ${n} 个`;
+  $('#bulkActive').style.display = S.view === 'active' ? '' : 'none';
+  $('#bulkArchived').style.display = S.view === 'archived' ? '' : 'none';
+}
+
+function toggleSel(id, range) {
+  const ids = S.list.map((i) => i.id);
+  if (range && S.anchor && ids.includes(S.anchor)) {
+    const [a, b] = [ids.indexOf(S.anchor), ids.indexOf(id)].sort((x, y) => x - y);
+    ids.slice(a, b + 1).forEach((x) => S.sel.add(x));
+  } else {
+    S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id);
+    S.anchor = id;
+  }
+  document.querySelectorAll('.card').forEach((c) => c.classList.toggle('sel', S.sel.has(c.dataset.id)));
+  renderBulk();
+}
+
+// ── actions ──
+async function act(action, ids, patch) {
+  if (!ids.length) return;
+  stopPlayers(ids);
+  const r = await api('POST', '/api/batch', { action, ids, patch });
+  if (r.errors?.length) toast(esc(r.errors.map((e) => `${e.id}: ${e.error}`).join('；')), { err: true, ms: 7000 });
+  return r;
+}
+async function archive(ids) {
+  const r = await act('archive', ids);
+  ids.forEach((id) => S.sel.delete(id));
+  await load();
+  if (r?.done?.length) toast(`已移除 ${r.done.length} 个到归档`, { action: async () => { await act('restore', r.done); await load(); toast('已恢复'); }, actionText: '撤销', ms: 8000 });
+}
+async function restore(ids) {
+  const r = await act('restore', ids);
+  ids.forEach((id) => S.sel.delete(id));
+  await load();
+  if (r?.done?.length) toast(`已恢复 ${r.done.length} 个`);
+}
+async function purge(ids) {
+  if (!ids.length || !confirm(`永久删除 ${ids.length} 个已归档视频？此操作不可撤销，文件将从磁盘删除。`)) return;
+  const r = await act('purge', ids);
+  ids.forEach((id) => S.sel.delete(id));
+  await load();
+  if (r?.done?.length) toast(`已永久删除 ${r.done.length} 个`);
+}
+function stopPlayers(ids) {
+  // Windows 上正在播放的文件无法移动：先释放
+  const dv = $('#dv');
+  if (S.detail && ids.includes(S.detail)) { dv.pause(); dv.removeAttribute('src'); dv.load(); }
+  document.querySelectorAll('.card video').forEach((v) => { if (ids.includes(v.closest('.card').dataset.id)) { v.removeAttribute('src'); v.load(); } });
+}
+async function patchItem(id, patch, quiet) {
+  try { await api('PATCH', '/api/items/' + encodeURIComponent(id), patch); await load(); if (!quiet) toast('已保存', { ms: 1500 }); } catch (e) { fail(e); }
+}
+
+// ── detail ──
+function openDetail(id) {
+  const it = S.items.find((i) => i.id === id);
+  if (!it) return;
+  S.detail = id;
+  S.newIds.delete(id);
+  const dv = $('#dv');
+  dv.src = mediaOf(it, it.video.file);
+  dv.poster = it.cover ? mediaOf(it, it.cover) : '';
+  dv.play().catch(() => {});
+  $('#modal').classList.add('show');
+  renderSide(it);
+  history.replaceState(null, '', '?focus=' + encodeURIComponent(id));
+}
+function closeDetail() {
+  const dv = $('#dv'); dv.pause(); dv.removeAttribute('src'); dv.load();
+  $('#modal').classList.remove('show');
+  S.detail = null;
+  history.replaceState(null, '', location.pathname);
+  render();
+}
+function step(d) {
+  const ids = S.list.map((i) => i.id);
+  const i = ids.indexOf(S.detail);
+  if (i < 0 || !ids.length) return;
+  openDetail(ids[(i + d + ids.length) % ids.length]);
+}
+function promptHtml(s) {
+  return esc(s).replace(/@\[([^\]]+)\]/g, '<span class="chip">@$1</span>').replace(/\[(图片|视频|音频)(\d+)\]/g, '<span class="chip">$1$2</span>');
+}
+function renderSide(it) {
+  const g = it.generation || {};
+  const refs = (it.references || []).map((r) => {
+    const src = r.file ? enc(r.file) : '';
+    const body = !src ? '<div class="kbd" style="padding:24px 6px">未保存</div>'
+      : r.kind === 'image' ? `<img src="${src}" alt="">`
+      : r.kind === 'video' ? `<video src="${src}" muted controls preload="metadata"></video>`
+      : `<audio src="${src}" controls preload="none"></audio>`;
+    return `<div class="ref" title="${esc(r.name)}">${body}<div class="lbl">@${esc(r.label)}</div></div>`;
+  }).join('');
+  const active = it.status === 'active';
+  $('#side').innerHTML = `
+    <div><label>标题</label><input id="fTitle" value="${esc(it.title)}"></div>
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <div class="rate" id="fRate">${[1, 2, 3, 4, 5].map((n) => `<span data-r="${n}" class="${n <= (it.rating || 0) ? 'on' : ''}">★</span>`).join('')}</div>
+      <button id="fFav">${it.favorite ? '★ 已收藏' : '☆ 收藏'}</button>
+    </div>
+    <div><label>项目</label><input id="fProject" list="projList" value="${esc(it.project)}"><datalist id="projList">${[...new Set(S.items.map((i) => i.project))].map((p) => `<option value="${esc(p)}">`).join('')}</datalist></div>
+    <div><label>标签（回车添加，点击 × 删除；虚线为自动标签）</label>
+      <div class="tagcloud" style="padding:0;margin-bottom:6px">${(it.tags || []).map((t) => `<span class="tag" data-rmtag="${esc(t)}">${esc(t)}<span class="x">×</span></span>`).join('')}${(it.autoTags || []).map((t) => `<span class="tag auto" data-rmtag="${esc(t)}">${esc(t)}<span class="x">×</span></span>`).join('')}</div>
+      <input id="fTag" placeholder="新标签，多个用逗号分隔"></div>
+    <div><label>备注</label><textarea id="fNote" placeholder="例如：可用于第 2 镜 / 手部变形需重做">${esc(it.note)}</textarea></div>
+    <div><label>提示词</label><div class="prompt">${promptHtml(it.prompt || it.promptRaw || '(无)')}</div></div>
+    ${refs ? `<div><label>参考素材</label><div class="refs">${refs}</div></div>` : ''}
+    <div class="kv">
+      <span>任务ID</span><span>${esc(it.recordId)}${it.total > 1 ? ` · 第 ${it.index}/${it.total} 个` : ''}</span>
+      <span>模型</span><span>${esc(g.model || '')}</span>
+      <span>参数</span><span>${esc([g.mode, g.ratio, g.resolution, g.duration].filter(Boolean).join(' · '))}</span>
+      <span>视频</span><span>${esc([it.video?.width && `${it.video.width}×${it.video.height}`, fmtDur(it), fmtSize(it.video?.size)].filter(Boolean).join(' · '))}</span>
+      <span>积分</span><span>${esc(g.credits ?? '')}</span>
+      <span>生成</span><span>${esc(fmtTime(it.createdAt))}</span>
+      <span>入库</span><span>${esc(fmtTime(it.savedAt))}</span>
+      ${it.archivedAt ? `<span>归档</span><span>${esc(fmtTime(it.archivedAt))}</span>` : ''}
+      ${g.workspaceId ? `<span>会话</span><span><a style="color:var(--accent)" target="_blank" href="https://jimeng.jianying.com/ai-tool/generate?type=video&workspace=${esc(g.workspaceId)}">在即梦中打开</a></span>` : ''}
+    </div>
+    <div class="row">
+      ${active ? '<button class="danger" id="fArchive" title="Delete">移除（归档）</button>' : '<button class="primary" id="fRestore">恢复</button><button class="danger" id="fPurge">永久删除</button>'}
+      <button id="fReveal">打开所在文件夹</button>
+      <button id="fCopyPath">复制路径</button>
+      <button id="fCopyPrompt">复制提示词</button>
+      <a href="${mediaOf(it, it.video.file)}" download="${esc(it.title)}.mp4"><button>下载</button></a>
+    </div>
+    <div class="kbd"><b>←</b><b>→</b> 切换 <b>空格</b> 播放/暂停 <b>Del</b> 移除 <b>F</b> 收藏 <b>1-5</b> 评分 <b>Esc</b> 关闭</div>`;
+  const id = it.id;
+  $('#fTitle').onchange = (e) => patchItem(id, { title: e.target.value });
+  $('#fProject').onchange = (e) => patchItem(id, { project: e.target.value });
+  $('#fNote').onchange = (e) => patchItem(id, { note: e.target.value });
+  $('#fTag').onkeydown = (e) => { if (e.key === 'Enter' && e.target.value.trim()) patchItem(id, { addTags: e.target.value }, true); };
+  $('#fFav').onclick = () => patchItem(id, { favorite: !it.favorite }, true);
+  $('#fRate').onclick = (e) => { const r = Number(e.target.dataset.r); if (r) patchItem(id, { rating: r === it.rating ? 0 : r }, true); };
+  $('#side').querySelectorAll('[data-rmtag]').forEach((el) => { el.onclick = () => patchItem(id, { removeTags: [el.dataset.rmtag] }, true); });
+  if (active) $('#fArchive').onclick = () => archiveCurrent();
+  else {
+    $('#fRestore').onclick = async () => { const next = neighbor(); await restore([id]); next ? openDetail(next) : closeDetail(); };
+    $('#fPurge').onclick = async () => { const next = neighbor(); await purge([id]); if (!S.items.find((i) => i.id === id)) next ? openDetail(next) : closeDetail(); };
+  }
+  $('#fReveal').onclick = () => api('POST', `/api/items/${encodeURIComponent(id)}/reveal`).catch(fail);
+  $('#fCopyPath').onclick = () => navigator.clipboard.writeText(it.videoPath).then(() => toast('已复制路径', { ms: 1500 }));
+  $('#fCopyPrompt').onclick = () => navigator.clipboard.writeText(it.promptRaw || it.prompt || '').then(() => toast('已复制提示词', { ms: 1500 }));
+}
+function neighbor() {
+  const ids = S.list.map((i) => i.id);
+  const i = ids.indexOf(S.detail);
+  return ids[i + 1] || ids[i - 1] || null;
+}
+async function archiveCurrent() {
+  const id = S.detail;
+  const next = neighbor();
+  await archive([id]);
+  next && S.items.find((i) => i.id === next) ? openDetail(next) : closeDetail();
+}
+
+// ── events ──
+document.querySelector('.tabs').onclick = (e) => {
+  const v = e.target.closest('button')?.dataset.view;
+  if (v && v !== S.view) { if (S.detail) closeDetail(); S.view = v; S.sel.clear(); S.project = ''; S.tag = ''; render(); }
+};
+$('#q').oninput = (e) => { S.q = e.target.value; render(); };
+$('#sort').onchange = (e) => { S.sort = e.target.value; localStorage.jlSort = S.sort; render(); };
+$('#size').oninput = (e) => { document.documentElement.style.setProperty('--card-w', e.target.value + 'px'); localStorage.jlSize = e.target.value; };
+$('#refresh').onclick = () => load().then(() => toast('已刷新', { ms: 1200 })).catch(fail);
+$('#libpath').onclick = () => api('POST', '/api/reveal-library').catch(fail);
+$('#emptyArchive').onclick = async () => {
+  const n = S.items.filter((i) => i.status === 'archived').length;
+  if (!confirm(`永久删除归档中的全部 ${n} 个视频？此操作不可撤销。`)) return;
+  try { const r = await api('POST', '/api/archive/empty'); await load(); toast(`已永久删除 ${r.done.length} 个`); } catch (e) { fail(e); }
+};
+document.querySelector('aside').onclick = (e) => {
+  const q = e.target.closest('[data-quick]');
+  const p = e.target.closest('[data-project]');
+  const t = e.target.closest('[data-tag]');
+  if (q) { S.quick = q.dataset.quick; S.project = ''; }
+  if (p) { S.project = S.project === p.dataset.project ? '' : p.dataset.project; S.quick = 'all'; }
+  if (t) S.tag = S.tag === t.dataset.tag ? '' : t.dataset.tag;
+  if (q || p || t) render();
+};
+$('#content').addEventListener('click', (e) => {
+  if (e.target.id === 'clearFilters') { S.project = ''; S.tag = ''; S.q = ''; S.quick = 'all'; $('#q').value = ''; render(); return; }
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const id = card.dataset.id;
+  if (e.target.dataset.chk || e.ctrlKey || e.metaKey || e.shiftKey || (S.sel.size && !e.altKey)) toggleSel(id, e.shiftKey);
+  else openDetail(id);
+});
+$('#content').addEventListener('dblclick', (e) => { const card = e.target.closest('.card'); if (card) openDetail(card.dataset.id); });
+// 悬停预览
+$('#grid').addEventListener('mouseover', (e) => {
+  const th = e.target.closest('.thumb');
+  if (!th || th.querySelector('video.hover')) return;
+  const it = S.items.find((i) => i.id === th.closest('.card').dataset.id);
+  if (!it || it._missing) return;
+  const v = document.createElement('video');
+  v.className = 'hover'; v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+  v.style.cssText = 'position:absolute;inset:0';
+  v.src = mediaOf(it, it.video.file);
+  th.appendChild(v);
+  th.addEventListener('mouseleave', () => { v.pause(); v.removeAttribute('src'); v.load(); v.remove(); }, { once: true });
+});
+$('#bulk').onclick = async (e) => {
+  const a = e.target.closest('[data-bulk]')?.dataset.bulk;
+  const ids = [...S.sel];
+  try {
+    if (a === 'archive') await archive(ids);
+    else if (a === 'restore') await restore(ids);
+    else if (a === 'purge') await purge(ids);
+    else if (a === 'clear') { S.sel.clear(); render(); }
+    else if (a === 'fav') { await act('update', ids, { favorite: true }); await load(); toast(`已收藏 ${ids.length} 个`); }
+    else if (a === 'project') {
+      const p = prompt('移到项目（输入项目名，可新建）', S.project || '');
+      if (p != null) { await act('update', ids, { project: p }); S.sel.clear(); await load(); toast('已移动'); }
+    } else if (a === 'addTag') {
+      const t = prompt('添加标签（多个用逗号分隔）', '');
+      if (t) { await act('update', ids, { addTags: t }); await load(); toast('已添加标签'); }
+    }
+  } catch (err) { fail(err); }
+};
+$('#mClose').onclick = closeDetail;
+$('#mPrev').onclick = () => step(-1);
+$('#mNext').onclick = () => step(1);
+$('#modal').onclick = (e) => { if (e.target.id === 'modal') closeDetail(); };
+
+document.addEventListener('keydown', (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  if (S.detail) {
+    if (e.key === 'Escape') { if (typing) document.activeElement.blur(); else closeDetail(); return; }
+    if (typing) return;
+    const it = S.items.find((i) => i.id === S.detail);
+    if (e.key === 'ArrowLeft') step(-1);
+    else if (e.key === 'ArrowRight') step(1);
+    else if (e.key === ' ') { e.preventDefault(); const v = $('#dv'); v.paused ? v.play() : v.pause(); }
+    else if ((e.key === 'Delete' || e.key === 'Backspace') && it?.status === 'active') archiveCurrent().catch(fail);
+    else if (e.key === 'f' || e.key === 'F') patchItem(S.detail, { favorite: !it.favorite }, true);
+    else if (/^[0-5]$/.test(e.key)) patchItem(S.detail, { rating: Number(e.key) }, true);
+    return;
+  }
+  if (typing) { if (e.key === 'Escape') document.activeElement.blur(); return; }
+  if (e.key === '/') { e.preventDefault(); $('#q').focus(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); S.list.forEach((i) => S.sel.add(i.id)); render(); }
+  else if (e.key === 'Escape') { S.sel.clear(); render(); }
+  else if ((e.key === 'Delete' || e.key === 'Backspace') && S.sel.size) {
+    e.preventDefault();
+    (S.view === 'active' ? archive([...S.sel]) : purge([...S.sel])).catch(fail);
+  }
+});
+
+// ── live updates ──
+function connect() {
+  const es = new EventSource('/api/events');
+  es.onopen = () => { $('#conn').classList.add('on'); $('#conn').title = '已连接，生成完成后会自动出现在这里'; };
+  es.onerror = () => { $('#conn').classList.remove('on'); $('#conn').title = '与本地服务断开（运行 opencli jimeng library 重新启动）'; };
+  es.onmessage = async (m) => {
+    const evt = JSON.parse(m.data);
+    if (evt.type === 'added') {
+      evt.ids.forEach((id) => S.newIds.add(id));
+      if (S.view !== 'active') S.view = 'active';
+      await load();
+      const first = evt.ids[0];
+      toast(`新视频已入库（${evt.ids.length} 个）`, { action: () => openDetail(first), actionText: '查看', ms: 10000 });
+      document.title = `(${S.newIds.size}) 即梦素材库`;
+    } else if (evt.type === 'changed') {
+      await load();
+    }
+  };
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) document.title = '即梦素材库'; });
+
+(async () => {
+  if (localStorage.jlSort) { S.sort = localStorage.jlSort; $('#sort').value = S.sort; }
+  if (localStorage.jlSize) { $('#size').value = localStorage.jlSize; document.documentElement.style.setProperty('--card-w', localStorage.jlSize + 'px'); }
+  try { await load(); } catch (e) { fail(e); }
+  connect();
+  const focus = new URLSearchParams(location.search).get('focus');
+  if (focus) {
+    const ids = focus.split(',').filter(Boolean);
+    ids.forEach((id) => S.newIds.add(id));
+    const it = S.items.find((i) => i.id === ids[0]);
+    if (it) { S.view = it.status; render(); openDetail(it.id); }
+  }
+})();
+</script>
+</body>
+</html>

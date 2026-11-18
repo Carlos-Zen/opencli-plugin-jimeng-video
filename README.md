@@ -6,7 +6,8 @@ opencli 内置的 `jimeng` 只支持文生图；本插件在同一个 `jimeng` �
 | 命令 | 说明 |
 |------|------|
 | `opencli jimeng video <prompt>` | 上传图片/视频/音频素材 → 输入提示词（@ 引用素材，与网页端一致）→ 设置模型/比例/时长/数量 → 提交 → 等待 → 下载 mp4 |
-| `opencli jimeng video-status <record_id>` | 查询任务状态 / 等待完成 / 下载（只读，不消耗积分） |
+| `opencli jimeng video-status <record_id>` | 查询任务状态 / 等待完成 / 下载；`--save` 导入素材库（不消耗积分） |
+| `opencli jimeng library [open|init|status|stop]` | 素材库：打开管理页面 / 设置目录 / 状态 / 停止本地服务 |
 
 ## 原理
 
@@ -78,6 +79,45 @@ opencli jimeng video-status <record_id> --wait --output ./videos
 | `--screenshot` | | 提交前截图 |
 
 返回字段：`status`(dry-run/submitted/succeeded/failed/timeout)、`record_id`、`workspace_id`、`model`、`mode`、`ratio_resolution`、`duration`、`credits`、`prompt`（@ 引用以 `@[标签]` 显示）、`video_url`、`file`。
+
+## 素材库
+
+每次 `jimeng video` 生成成功后，视频会**自动存入素材库**并按上下文整理标注，同时在管理页展示：
+已打开的管理页会实时出现新视频（NEW 标记 + 提示）；没有打开时会自动用浏览器打开。
+
+```bash
+opencli jimeng library init --dir D:/即梦素材库   # 设置素材库目录（默认 ~/Videos/JimengLibrary）
+opencli jimeng library                          # 打开管理页面（http://127.0.0.1:17890）
+opencli jimeng library status                   # 目录、数量、占用空间、服务状态
+opencli jimeng video-status <record_id> --save  # 把网页端生成的历史视频导入素材库
+opencli jimeng video "..." --project 艾灸毯广告 --tags 第一版,竖屏   # 指定项目与标签
+```
+
+**自动整理**：按「项目 / 生成时间_标题_任务ID」建文件夹；标题从提示词提取；自动标签包含模型、参考模式、比例、分辨率、
+时长、参考类型（图片/视频/音频/主体参考或文生视频）及引用的主体；上传的参考素材按内容去重保存到 `refs/`，
+管理页可直接查看每个视频用了哪些素材。项目默认取 `--project`，其次是 `--workspace` 指定的会话标题，否则「未分类」。
+
+**管理页**（固定的一个本地页面 + 常驻本地服务，只监听 127.0.0.1，数据都在素材库目录）：
+- 网格预览，鼠标悬停即播放；按项目、标签、收藏、评分筛选，全文搜索（标题/提示词/标签/备注/任务ID）
+- 详情页：播放、编辑标题/项目/标签/备注、评分、收藏、查看提示词与参考素材、打开所在文件夹、复制路径/提示词
+- 移除 = **归档**：移到 `archive/`，可撤销、可在「已归档」中恢复；只有已归档的才能永久删除
+- 多选（Ctrl/Shift+单击、Ctrl+A）批量归档、移到项目、加标签、收藏；快捷键 ←/→ 切换、Del 移除、F 收藏、1-5 评分
+
+**目录规范**（素材库根目录内也会自动生成 README.md 说明）：
+
+```
+library.json                              素材库标识与版本（schema: jimeng-video-library v1）
+videos/<项目>/<生成时间>_<标题>_<任务ID>-<序号>/
+    video.mp4  cover.jpg  meta.json       视频、封面、标注与生成上下文
+archive/<项目>/<同名文件夹>/                已移除（归档）的素材，结构相同
+refs/<sha1>.<扩展名>                        参考素材（去重共享）
+.system/server.json server.log activity.jsonl   服务状态、日志、操作记录
+```
+
+每个视频的全部信息都在自己的 `meta.json` 里，没有中心数据库：拷贝/备份整个目录即可迁移；
+在资源管理器里手工把文件夹移到别的 `<项目>/` 下，管理页刷新后同样能识别。
+
+相关参数：`video` 的 `--save`（默认 true）、`--library`、`--project`、`--tags`、`--title`、`--open-ui`（默认 true）。
 
 ## 注意
 
