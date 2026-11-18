@@ -1,6 +1,6 @@
 {
   "name": "jimeng-video",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "即梦AI 视频生成：上传素材、@引用、提交下载；本地素材库与管理页；ArcReel 等工具的即梦网页桥接服务",
   "opencli": ">=2.0.3"
 }

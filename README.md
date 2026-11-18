@@ -6,7 +6,8 @@ opencli 内置的 `jimeng` 只支持文生图；本插件在同一个 `jimeng` �
 | 命令 | 说明 |
 |------|------|
 | `opencli jimeng video <prompt>` | 上传图片/视频/音频素材 → 输入提示词（@ 引用素材，与网页端一致）→ 设置模型/比例/时长/数量 → 提交 → 等待 → 下载 mp4 |
-| `opencli jimeng video-status <record_id>` | 查询任务状态 / 等待完成 / 下载；`--save` 导入素材库（不消耗积分） |
+| `opencli jimeng image <prompt>` | 图片生成：上传参考图、@ 引用、模型/比例/分辨率/数量（默认 1 张）→ 提交 → 等待 → 下载 |
+| `opencli jimeng video-status <record_id>` | 查询任务状态 / 等待完成 / 下载；`--save` 导入素材库；`--kind image` 查询图片任务（不消耗积分） |
 | `opencli jimeng video-list` | 列出最近的视频任务及 record_id（`--keyword` 过滤，`--save` 批量导入素材库；不消耗积分） |
 | `opencli jimeng library [open|init|status|stop]` | 素材库：打开管理页面 / 设置目录 / 状态 / 停止本地服务 |
 | `opencli jimeng bridge [start|status|stop|token|definition|jobs]` | 桥接服务：让 [ArcReel](https://github.com/ArcReel/ArcReel) 等工具通过 HTTP API 使用即梦网页账号（会员积分）生成视频 |
@@ -158,6 +159,17 @@ opencli jimeng bridge arcreel --arcreel-env <ArcReel 的 deploy/.env>   # 从 .e
 - 模型：填即梦网页上显示的模型名，例如 `即梦 Seedance 2.0 Fast VIP`、`即梦 Seedance 2.0 mini`；
   可选时长按该模型填（如 4-15 秒），分辨率 `720p`。
 - 把该供应商设为项目的视频生成供应商即可。
+
+**图片生成**（资产图、分镜图）
+
+`bridge arcreel` 同时导入图片端点 [`arcreel/jimeng-web-bridge-image.json`](arcreel/jimeng-web-bridge-image.json)，
+并在同一个供应商下添加图片模型（默认 `Seedream 5.5`、`即梦 ImageMax 1.0`，可用 `--image-model` 指定）。
+在项目设置把「文生图 / 图生图」选为 `custom-1/Seedream 5.5` 即可。
+
+- 每次只生成 1 张（即梦网页默认 4 张，这里固定 1 张节省积分）。
+- ArcReel 提示词里的「图N」自动转成即梦的 `@图片N` 引用。
+- 比例/分辨率在当前模型不可用时忽略并保持网页默认值（日志中有 warnings）。
+- 生成的图片保存在 `<素材库>/.system/bridge/files/`，不进入视频素材库。
 
 **行为说明**
 

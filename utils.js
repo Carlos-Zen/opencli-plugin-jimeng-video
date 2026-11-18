@@ -286,6 +286,10 @@ async function selectCombo(page, which, wanted) {
   return res;
 }
 
+export async function ensureImageType(page) {
+  return selectCombo(page, '创作类型', '图片生成');
+}
+
 export async function ensureVideoType(page) {
   return selectCombo(page, '创作类型', '视频生成');
 }
@@ -384,10 +388,12 @@ export async function applySettings(page, { ratio, resolution, count, duration }
       }
       if (popover()) { btn.click(); await wait(400); }
     };
-    const isRatioBtn = (b) => /\d{3,4}P|[248]K/i.test(label(b)) && !/生成数量/.test(label(b));
-    if (cfg.ratio) await pickRadio(isRatioBtn, '.lv-radio-group[class*="aspect-ratio"]', cfg.ratio, 'ratio');
+    // video: "16:9 720P"; image: "1:1 2K" / "智能 1.5K"
+    const isRatioBtn = (b) => /\d{3,4}P|\d(\.\d)?K\b/i.test(label(b)) && !/生成数量/.test(label(b));
+    // image mode's ratio group has no aspect-ratio class: fall back to the first group of N:M values
+    if (cfg.ratio) await pickRadio(isRatioBtn, '.lv-radio-group[class*="aspect-ratio"], .lv-radio-group:not([class*="resolution"])', cfg.ratio, 'ratio');
     if (cfg.resolution) await pickRadio(isRatioBtn, '.lv-radio-group[class*="resolution"]', cfg.resolution, 'resolution');
-    if (cfg.count) await pickRadio((b) => /生成数量/.test(label(b)), '.lv-radio-group[class*="batch-number"]', cfg.count, 'count');
+    if (cfg.count) await pickRadio((b) => /生成数量/.test(label(b)), '.lv-radio-group[class*="batch-number"], .lv-radio-group[class*="generate-count"]', cfg.count, 'count');
     if (cfg.duration) {
       const btn = buttons().find((b) => /^\d+s$/.test(label(b)));
       if (!btn) out.errors.push('duration: 当前模型/模式下没有时长设置');
@@ -436,16 +442,17 @@ export async function readSummary(page) {
     const g = document.querySelector('[data-testid="dreamina.generator"]');
     const combos = [...g.querySelectorAll('[role=combobox]')];
     const btnText = [...g.querySelectorAll('button')].filter(vis).map((b) => (b.getAttribute('aria-label') || b.innerText).replace(/\s+/g, ' ').trim());
-    const credit = [...g.querySelectorAll('span[tabindex="0"]')].map((s) => s.innerText.replace(/\s+/g, ' ').trim()).find((t) => /^\d+( \d+)?$/.test(t));
+    const credit = [...g.querySelectorAll('span[tabindex="0"]')].map((s) => s.innerText.replace(/\s+/g, ' ').trim()).find((t) => /^\d+(\/张)?( \d+(\/张)?)?$/.test(t)); // video: "24 36"; image: "6/张 9/张"
     const submit = g.querySelector('[data-testid="dreamina.generator.submit"]');
     return {
       type: combos.find((c) => c.getAttribute('aria-label') === '创作类型')?.innerText.trim() || '',
       model: combos.find((c) => c.getAttribute('aria-label') === '模型')?.innerText.trim() || '',
       mode: combos.find((c) => !c.getAttribute('aria-label'))?.innerText.trim() || '',
-      ratio_resolution: btnText.find((t) => /\d{3,4}P|[248]K/i.test(t) && !/生成数量/.test(t)) || '',
+      ratio_resolution: btnText.find((t) => /\d{3,4}P|\d(\.\d)?K\b/i.test(t) && !/生成数量/.test(t)) || '',
       count: (btnText.find((t) => /生成数量/.test(t)) || '').replace(/[^\d]/g, ''),
       duration: btnText.find((t) => /^\d+s$/.test(t)) || '',
-      credits: credit ? Number(credit.split(' ')[0]) : null,
+      credits: credit ? parseInt(credit, 10) : null, // image mode: per image × count
+      credits_per: credit && credit.includes('/张') ? 'image' : 'task',
       submit_enabled: !!submit && !submit.disabled && !String(submit.className).includes('disabled') && submit.getAttribute('aria-disabled') !== 'true',
       url: location.href,
     };
@@ -843,11 +850,18 @@ function workspaceFromUrl(url) {
 }
 
 /** Find a generation record by history_record_id via get_asset_list (and anything the page fetched itself). */
-export async function lookupRecord(page, recordId, workspaceId, maxPages = 6) {
-  return ev(page, async (rid, ws, maxPages, q) => {
+/** kind: 'video' (asset type 2) | 'image' (asset type 1). Results are returned in `videos` either way. */
+export async function lookupRecord(page, recordId, workspaceId, maxPages = 6, kind = 'video') {
+  return ev(page, async (rid, ws, maxPages, q, kind) => {
     const pickVideo = (rec) => {
       const urls = [];
       for (const it of rec.item_list || []) {
+        const imgs = it.image?.large_images || [];
+        if (imgs.length) {
+          const best = imgs.slice().sort((a, b) => (b.width || 0) * (b.height || 0) - (a.width || 0) * (a.height || 0))[0];
+          if (best.image_url) urls.push({ url: best.image_url, width: best.width || null, height: best.height || null, size: best.size || null, format: best.format || it.image?.format || 'png', cover: it.common_attr?.cover_url || null, item_id: it.common_attr?.id || null });
+          continue;
+        }
         const v = it.video || {};
         const tv = v.transcoded_video || {};
         const best = tv.origin || tv['1080p'] || tv['720p'] || Object.values(tv)[0] || {};
@@ -888,27 +902,28 @@ export async function lookupRecord(page, recordId, workspaceId, maxPages = 6) {
     let offset = 0;
     for (let p = 0; p < maxPages; p++) {
       // workspace_id omitted = newest first across all conversations (workspace_id:0 returns an unrelated list)
-      const body = { count: 20, asset_type_list: [2], direction: 1, mode: 'workbench' };
+      const body = { count: 20, asset_type_list: [kind === 'image' ? 1 : 2], direction: 1, mode: 'workbench' };
       if (Number(ws)) body.workspace_id = Number(ws);
       if (offset) body.offset = offset;
       const r = await fetch(`/mweb/v1/get_asset_list?${q}`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
       if (String(j.ret) !== '0') return { ok: false, error: `get_asset_list ret=${j.ret} ${j.errmsg}` };
       for (const a of j.data?.asset_list || []) {
-        if (a.video && String(a.video.history_record_id) === rid) return { ok: true, rec: fromObj(a.video), via: 'api' };
+        const rec = a.video || a.image;
+        if (rec && String(rec.history_record_id) === rid) return { ok: true, rec: fromObj(rec), via: 'api' };
       }
       if (!j.data?.has_more || !j.data?.next_offset) break;
       offset = j.data.next_offset;
     }
     return { ok: true, rec: null };
-  }, String(recordId), String(workspaceId || '0'), maxPages, API_QUERY);
+  }, String(recordId), String(workspaceId || '0'), maxPages, API_QUERY, kind);
 }
 
-export async function waitForRecord(page, recordId, workspaceId, timeoutSec, startedAt = Date.now()) {
+export async function waitForRecord(page, recordId, workspaceId, timeoutSec, startedAt = Date.now(), kind = 'video') {
   const deadline = startedAt + timeoutSec * 1000;
   let last = null;
   while (Date.now() < deadline) {
-    const r = await lookupRecord(page, recordId, workspaceId, 3).catch((e) => ({ ok: false, error: String(e?.message || e) }));
+    const r = await lookupRecord(page, recordId, workspaceId, 3, kind).catch((e) => ({ ok: false, error: String(e?.message || e) }));
     if (r.ok && r.rec) {
       last = r.rec;
       if (r.rec.status === 50 && r.rec.videos.length) return r.rec;

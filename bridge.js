@@ -7,7 +7,7 @@ import { ArgumentError, CommandExecutionError } from '@jackwener/opencli/errors'
 import {
   bridgeConfig, bridgeStatus, ensureBridge, ensureBridgeToken, resolveLibraryDir, saveBridgeConfig, stopBridge,
 } from './lib/library.js';
-import { DEFAULT_MODELS, readArcreelEnv, setupArcreel } from './lib/arcreel.js';
+import { DEFAULT_IMAGE_MODELS, DEFAULT_MODELS, readArcreelEnv, setupArcreel } from './lib/arcreel.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFINITION = path.join(HERE, 'arcreel', 'jimeng-web-bridge.json');
@@ -32,6 +32,8 @@ cli({
     { name: 'reset', type: 'boolean', default: false, help: 'token 时重新生成令牌（旧令牌立即失效，需要同步修改 ArcReel）' },
     { name: 'out', type: 'string', default: '', help: 'definition 时把定义写到该文件' },
     { name: 'replay-record', type: 'string', default: '', help: '测试模式：网页只 dry-run 不提交，用该已有 record_id 作为结果（不消耗积分）' },
+    { name: 'replay-image-record', type: 'string', default: '', help: '测试模式（图片）：同上，用该已有图片任务作为结果' },
+    { name: 'image-model', type: 'string', default: '', help: '请求未指定模型时使用的即梦图片模型（默认 Seedream 5.5，保存为配置）；arcreel 时为要添加的图片模型，逗号分隔' },
     { name: 'arcreel-url', type: 'string', default: 'http://127.0.0.1:1241', help: 'arcreel：ArcReel 地址' },
     { name: 'arcreel-env', type: 'string', default: '', help: 'arcreel：ArcReel deploy/.env 路径（从中读取管理员账号密码）' },
     { name: 'arcreel-user', type: 'string', default: '', help: 'arcreel：管理员用户名（默认取 .env 或 admin）' },
@@ -51,6 +53,7 @@ cli({
     if (Number(kwargs['max-credits']) >= 0) patch.maxCredits = Number(kwargs['max-credits']);
     if (String(kwargs.project || '').trim()) patch.project = String(kwargs.project).trim();
     if (String(kwargs.model || '').trim()) patch.defaultModel = String(kwargs.model).trim();
+    if (action !== 'arcreel' && String(kwargs['image-model'] || '').trim()) patch.defaultImageModel = String(kwargs['image-model']).trim();
     if (Object.keys(patch).length) saveBridgeConfig(patch);
 
     const describe = (st, extra = {}) => {
@@ -64,6 +67,7 @@ cli({
         max_credits: c.maxCredits || 0,
         project: c.project,
         default_model: c.defaultModel || '',
+        default_image_model: c.defaultImageModel || '',
         library: lib,
         log: path.join(lib, '.system', 'bridge', 'bridge.log'),
         definition: DEFINITION,
@@ -108,6 +112,7 @@ cli({
           bridgeUrl: `http://host.docker.internal:${c.port}`,
           bridgeToken: token,
           models: models.length ? models : DEFAULT_MODELS,
+          imageModels: (() => { const l = String(kwargs['image-model'] || '').split(/[,，]/).map((s) => s.trim()).filter(Boolean); return l.length ? l : DEFAULT_IMAGE_MODELS; })(),
           durations,
           resolution: String(kwargs.resolution || '720p').toLowerCase(),
           videoWorkers: 3,
@@ -124,13 +129,13 @@ cli({
       const j = await r.json();
       return (j.data || []).map((x) => ({ action: 'job', task_id: x.task_id, created: x.created_at, status: x.status, record_id: x.record_id || '', credits: x.credits ?? '', mode: x.mode, model: x.model, error: x.error || '', prompt: x.prompt }));
     }
-    if (action === 'restart' || (action === 'start' && (Object.keys(patch).length || kwargs['replay-record']))) {
+    if (action === 'restart' || (action === 'start' && (Object.keys(patch).length || kwargs['replay-record'] || kwargs['replay-image-record']))) {
       await stopBridge(lib);
       await new Promise((r) => setTimeout(r, 500));
     }
     if (action === 'status') return [describe(await bridgeStatus(lib))];
     try {
-      const st = await ensureBridge(lib, { replayRecord: String(kwargs['replay-record'] || '').trim() });
+      const st = await ensureBridge(lib, { replayRecord: String(kwargs['replay-record'] || '').trim(), replayImageRecord: String(kwargs['replay-image-record'] || '').trim() });
       return [describe(st, { started: st.started })];
     } catch (e) {
       throw new CommandExecutionError(String(e.message || e));

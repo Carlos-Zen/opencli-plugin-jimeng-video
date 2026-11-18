@@ -17,6 +17,7 @@ cli({
   args: [
     { name: 'record_id', type: 'string', required: true, positional: true, help: 'history_record_id（jimeng video 返回的 record_id）' },
     { name: 'workspace', type: 'string', default: '0', help: '会话ID（加速查找，可选）' },
+    { name: 'kind', type: 'string', default: 'video', help: '任务类型: video / image（image 只查询，不入库）' },
     { name: 'wait', type: 'boolean', default: false, help: '若仍在生成，则等待完成' },
     { name: 'timeout', type: 'int', default: 1800, help: '总超时秒数（含等待生成与下载）' },
     { name: 'output', type: 'string', default: '', help: '下载 mp4 到该目录（留空=不下载）' },
@@ -34,9 +35,11 @@ cli({
     await page.goto(/^\d+$/.test(ws) && ws !== '0' ? `${VIDEO_URL}&workspace=${ws}` : VIDEO_URL);
     await installNetHook(page);
     let rec;
-    if (kwargs.wait) rec = await waitForRecord(page, rid, ws, Number(kwargs.timeout));
+    const kind = String(kwargs.kind || 'video') === 'image' ? 'image' : 'video';
+    if (kind === 'image' && (kwargs.save || kwargs.output)) throw new ArgumentError('--kind image 只支持查询（--save/--output 用于视频）');
+    if (kwargs.wait) rec = await waitForRecord(page, rid, ws, Number(kwargs.timeout), Date.now(), kind);
     else {
-      const r = await lookupRecord(page, rid, ws, 10);
+      const r = await lookupRecord(page, rid, ws, 10, kind);
       if (!r.ok) throw new Error(r.error);
       rec = r.rec;
     }
