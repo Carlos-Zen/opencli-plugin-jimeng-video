@@ -133,7 +133,12 @@ export async function openGenerator(page, workspace) {
   const url = byId ? `${VIDEO_URL}&workspace=${ws}` : VIDEO_URL;
   await page.goto(url);
   await waitGenerator(page);
-  const state = await ev(page, () => ({ login: !!document.querySelector('#js-side-menu-entry-avatar-container'), url: location.href }));
+  // The avatar renders a moment after the generator panel; wait for it before concluding "logged out".
+  let state = { login: false };
+  for (let i = 0; i < 20 && !state.login; i++) {
+    if (i) await sleep(500);
+    state = await ev(page, () => ({ login: !!document.querySelector('#js-side-menu-entry-avatar-container'), url: location.href })).catch(() => ({ login: false }));
+  }
   if (!state.login) {
     throw new AuthRequiredError(DOMAIN, '即梦未登录', '请先在 Chrome 中登录 https://jimeng.jianying.com');
   }
@@ -572,17 +577,16 @@ async function typeText(page, text) {
     }
     const line = lines[i];
     if (!line) continue;
-    await ev(page, () => { const ed = document.querySelector('[data-testid="dreamina.generator"] .tiptap').editor; ed.view.dom.focus(); ed.commands.setTextSelection(ed.state.doc.content.size - 1); return true; });
-    if (line.includes('@')) {
-      // literal @: insert programmatically so the mention popup can't hijack it
-      await ev(page, (t) => { const ed = document.querySelector('[data-testid="dreamina.generator"] .tiptap').editor; ed.view.dom.focus(); ed.commands.setTextSelection(ed.state.doc.content.size - 1); ed.commands.insertContent(t); return true; }, line);
-    } else {
-      try {
-        await page.insertText(line);
-      } catch {
-        await ev(page, (t) => { document.querySelector('[data-testid="dreamina.generator"] .tiptap').editor.commands.insertContent(t); return true; }, line);
-      }
-    }
+    // Always append at the document end via an editor transaction. Typing through the DOM caret
+    // (CDP insertText) can land before mention chips that were inserted by command, scrambling
+    // the order. A JSON text node (not a string) also keeps "<名称>" from being parsed as HTML
+    // and a literal "@" from opening the mention popup.
+    await ev(page, (t) => {
+      const ed = document.querySelector('[data-testid="dreamina.generator"] .tiptap').editor;
+      ed.view.dom.focus();
+      ed.chain().setTextSelection(ed.state.doc.content.size - 1).insertContent({ type: 'text', text: t }).run();
+      return true;
+    }, line);
   }
   await closeMentionPopup(page);
 }

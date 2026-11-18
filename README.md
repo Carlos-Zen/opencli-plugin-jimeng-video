@@ -9,6 +9,7 @@ opencli 内置的 `jimeng` 只支持文生图；本插件在同一个 `jimeng` �
 | `opencli jimeng video-status <record_id>` | 查询任务状态 / 等待完成 / 下载；`--save` 导入素材库（不消耗积分） |
 | `opencli jimeng video-list` | 列出最近的视频任务及 record_id（`--keyword` 过滤，`--save` 批量导入素材库；不消耗积分） |
 | `opencli jimeng library [open|init|status|stop]` | 素材库：打开管理页面 / 设置目录 / 状态 / 停止本地服务 |
+| `opencli jimeng bridge [start|status|stop|token|definition|jobs]` | 桥接服务：让 [ArcReel](https://github.com/ArcReel/ArcReel) 等工具通过 HTTP API 使用即梦网页账号（会员积分）生成视频 |
 
 ## 原理
 
@@ -121,6 +122,56 @@ refs/<sha1>.<扩展名>                        参考素材（去重共享）
 在资源管理器里手工把文件夹移到别的 `<项目>/` 下，管理页刷新后同样能识别。
 
 相关参数：`video` 的 `--save`（默认 true）、`--library`、`--project`、`--tags`、`--title`、`--open-ui`（默认 true）。
+
+## 接入 ArcReel（桥接服务）
+
+[ArcReel](https://github.com/ArcReel/ArcReel) 负责分镜、资产一致性、审核与剪映导出，生成环节通过本插件的桥接服务
+落到即梦网页，消耗的是你的即梦会员积分，而不是火山方舟 API 额度。
+
+```
+ArcReel (Docker) ──HTTP──▶ opencli jimeng bridge (本机 127.0.0.1:17891) ──▶ opencli jimeng video ──▶ 即梦网页
+                ◀── 视频文件 ──  （同时存入素材库，项目 ArcReel）
+```
+
+**1. 启动桥接服务**
+
+```bash
+opencli jimeng bridge start --max-credits 60      # 单个任务预计超过 60 积分则拒绝提交（0=不限）
+opencli jimeng bridge token                       # 查看令牌（填到 ArcReel 的 API Key）
+opencli jimeng bridge definition --out jimeng-web-bridge.json   # 导出 ArcReel 端点定义
+```
+
+**2. 在 ArcReel 中添加供应商**
+
+一条命令完成（导入端点定义、创建供应商和模型；可重复执行，已存在则更新）：
+
+```bash
+opencli jimeng bridge arcreel --arcreel-env <ArcReel 的 deploy/.env>   # 从 .env 读取管理员账号密码
+# 可选：--models "即梦 Seedance 2.0 Fast VIP,即梦 Seedance 2.0 mini" --durations 4-15 --resolution 720p
+```
+
+也可以在 ArcReel「设置 → 自定义供应商」手动添加：
+
+- 新建端点定义：粘贴 [`arcreel/jimeng-web-bridge.json`](arcreel/jimeng-web-bridge.json)（已通过 ArcReel 校验器）。
+  也可以不建定义，直接选内置的「V2 Video Generations」，但它最多只传 4 张参考图、不传参考音频。
+- Base URL：`http://host.docker.internal:17891`；API Key：上一步的令牌。
+- 模型：填即梦网页上显示的模型名，例如 `即梦 Seedance 2.0 Fast VIP`、`即梦 Seedance 2.0 mini`；
+  可选时长按该模型填（如 4-15 秒），分辨率 `720p`。
+- 把该供应商设为项目的视频生成供应商即可。
+
+**行为说明**
+
+- 提示词原样传递：ArcReel 生成的 `<角色>@图片N`、`@音频N` 与即梦网页的 @ 引用完全一致；参考图按顺序上传。
+  没有对应素材的 @ 引用会降为纯文字。
+- 只有首帧/尾帧时自动使用即梦「首尾帧」模式；既有参考图又有首帧时，首帧作为额外参考图并在提示词开头注明。
+- 网页操作全局串行：一个任务提交完才提交下一个（每次约 15–30 秒），生成本身在即梦端并行；
+  提交时会弹出即梦窗口，请保持可见。
+- 积分保护：所有请求需令牌；相同请求 30 分钟内重复提交返回原任务；提交途中服务重启的任务直接判失败，
+  绝不自动重交；`--max-credits` 限制单任务积分。
+- 生成结果自动存入素材库（项目 `ArcReel`，带参考素材），可在 `opencli jimeng library` 中管理。
+- 排障：`opencli jimeng bridge jobs` 看最近任务；日志在 `<素材库>/.system/bridge/bridge.log`。
+- 免费联调：`opencli jimeng bridge start --replay-record <已有record_id>`，网页只 dry-run 不提交，
+  用该已有任务的视频作为结果返回，可以不花积分跑通 ArcReel 全流程。
 
 ## 注意
 

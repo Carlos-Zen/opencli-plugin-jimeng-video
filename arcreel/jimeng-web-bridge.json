@@ -1,0 +1,66 @@
+{
+  "kind": "declarative",
+  "schema_version": "1.2.0",
+  "meta": {
+    "name": "即梦网页桥接 (opencli)",
+    "author": "Carlos-Zen",
+    "version": "1.0.0",
+    "description": "通过本机 opencli-plugin-jimeng-video 的桥接服务，用即梦网页账号（会员积分）生成视频。提示词中的 @图片N / @音频N 与即梦网页一致。base_url 填 http://host.docker.internal:17891，API Key 填 opencli jimeng bridge token 输出的令牌，模型名填即梦网页上的模型名（如 即梦 Seedance 2.0 Fast VIP）。"
+  },
+  "auth": {
+    "headers": {
+      "Authorization": "Bearer {{ api_key }}"
+    }
+  },
+  "inputs": {
+    "first_frame": { "source": "start_image", "encoding": "data_uri" },
+    "last_frame": { "source": "end_image", "encoding": "data_uri" },
+    "refs": { "source": "reference_images", "encoding": "data_uri" },
+    "audios": { "source": "reference_audio_files", "encoding": "data_uri" }
+  },
+  "submit": {
+    "method": "POST",
+    "url": "{{ base_url }}/v1/jimeng/videos",
+    "body": {
+      "model": "{{ model }}",
+      "prompt": "{{ prompt }}",
+      "duration": "{{ duration }}",
+      "aspect_ratio": "{{ aspect_ratio }}",
+      "resolution": "{{ resolution }}",
+      "first_frame": "{{ inputs.first_frame }}",
+      "last_frame": "{{ inputs.last_frame }}",
+      "refs": [{ "$each": { "in": "inputs.refs", "as": "ref", "item": "{{ ref }}" } }],
+      "audios": [{ "$each": { "in": "inputs.audios", "as": "a", "item": "{{ a }}" } }]
+    },
+    "extract": {
+      "task_id": ["$.task_id"],
+      "error": ["$.error"]
+    }
+  },
+  "poll": {
+    "method": "GET",
+    "url": "{{ base_url }}/v1/jimeng/videos/{{ task_id }}",
+    "extract": {
+      "status": ["$.status"],
+      "video_url": ["$.video_url"],
+      "error": ["$.error"],
+      "usage": {
+        "duration_seconds": { "paths": ["$.duration"], "accept": "scalar" }
+      }
+    }
+  },
+  "status_map": {
+    "queued": "queued",
+    "processing": "running",
+    "completed": "succeeded",
+    "failed": "failed"
+  },
+  "capabilities": {
+    "text_to_video": true,
+    "first_frame": true,
+    "last_frame": true,
+    "max_reference_images": 9,
+    "reference_audio_mode": "direct",
+    "max_reference_audio_count": 3
+  }
+}
