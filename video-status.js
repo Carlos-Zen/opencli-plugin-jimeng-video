@@ -18,7 +18,7 @@ cli({
     { name: 'record_id', type: 'string', required: true, positional: true, help: 'history_record_id（jimeng video 返回的 record_id）' },
     { name: 'workspace', type: 'string', default: '0', help: '会话ID（加速查找，可选）' },
     { name: 'wait', type: 'boolean', default: false, help: '若仍在生成，则等待完成' },
-    { name: 'timeout', type: 'int', default: 900, help: '等待超时秒数' },
+    { name: 'timeout', type: 'int', default: 1800, help: '总超时秒数（含等待生成与下载）' },
     { name: 'output', type: 'string', default: '', help: '下载 mp4 到该目录（留空=不下载）' },
     { name: 'save', type: 'boolean', default: false, help: '存入素材库（可用于导入网页端生成的视频；已在库则跳过）' },
     { name: 'library', type: 'string', default: '', help: '素材库目录（默认取 library init 设置的目录）' },

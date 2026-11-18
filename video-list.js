@@ -23,6 +23,7 @@ cli({
     { name: 'save', type: 'boolean', default: false, help: '把列出的成功任务全部导入素材库（已在库的跳过）' },
     { name: 'library', type: 'string', default: '', help: '素材库目录（默认取 library init 设置的目录）' },
     { name: 'project', type: 'string', default: '', help: '导入时的项目' },
+    { name: 'timeout', type: 'int', default: 1800, help: '总超时秒数（批量下载较慢时调大）' },
     { name: 'open-ui', type: 'boolean', default: true, help: '导入后在管理页展示' },
   ],
   columns: ['record_id', 'created', 'status', 'model', 'videos', 'prompt', 'library_item'],
