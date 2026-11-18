@@ -7,6 +7,7 @@ opencli 内置的 `jimeng` 只支持文生图；本插件在同一个 `jimeng` �
 |------|------|
 | `opencli jimeng video <prompt>` | 上传图片/视频/音频素材 → 输入提示词（@ 引用素材，与网页端一致）→ 设置模型/比例/时长/数量 → 提交 → 等待 → 下载 mp4 |
 | `opencli jimeng video-status <record_id>` | 查询任务状态 / 等待完成 / 下载；`--save` 导入素材库（不消耗积分） |
+| `opencli jimeng video-list` | 列出最近的视频任务及 record_id（`--keyword` 过滤，`--save` 批量导入素材库；不消耗积分） |
 | `opencli jimeng library [open|init|status|stop]` | 素材库：打开管理页面 / 设置目录 / 状态 / 停止本地服务 |
 
 ## 原理
@@ -89,7 +90,9 @@ opencli jimeng video-status <record_id> --wait --output ./videos
 opencli jimeng library init --dir D:/即梦素材库   # 设置素材库目录（默认 ~/Videos/JimengLibrary）
 opencli jimeng library                          # 打开管理页面（http://127.0.0.1:17890）
 opencli jimeng library status                   # 目录、数量、占用空间、服务状态
-opencli jimeng video-status <record_id> --save  # 把网页端生成的历史视频导入素材库
+opencli jimeng video-list -f table              # 查看历史任务的 record_id
+opencli jimeng video-list --limit 50 --save     # 批量导入最近 50 个历史视频
+opencli jimeng video-status <record_id> --save  # 导入单个历史视频
 opencli jimeng video "..." --project 艾灸毯广告 --tags 第一版,竖屏   # 指定项目与标签
 ```
 

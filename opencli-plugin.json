@@ -1,6 +1,6 @@
 {
   "name": "jimeng-video",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "即梦AI 视频生成：上传图片/视频/音频素材、@引用素材、提交生成并下载；自动入库的本地素材库与管理页面",
   "opencli": ">=2.0.3"
 }
